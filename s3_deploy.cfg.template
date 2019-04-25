@@ -1,0 +1,20 @@
+[general]
+products = PRODUCT1 PRODUCT2
+deployments = DEPLOY1 DEPLOY2
+s3_bucket = S3-BUCKET
+
+[cloudfront-PRODUCT1]
+DEPLOY1-dist-id = SOME-DIST-ID
+DEPLOY2-dist-id = SOME-DIST-ID
+
+[cloudfront-PRODUCT2]
+DEPLOY1-dist-id = SOME-DIST-ID
+DEPLOY2-dist-id = SOME-DIST-ID
+
+[aws-credentials]
+access_id = ACCESS-ID
+secret_key = ACCESS-KEY
+
+
+
+
