@@ -8,10 +8,10 @@ React applications on S3/CloudFront can be incredibly fast, "serverless" and ver
 This tool assumes a structure of one S3 bucket with many CloudFront deployments.  That bucket can contain many different "products", with each product containing multiple deployments.  That single S3 bucket will have a structure like this:
 
 ```
-/my-first-project/production
-/my-first-project/testing
-/my-second-project/production
-/my-second-project/testing
+s3://my-s3-bucket//my-first-project/production
+s3://my-s3-bucket//my-first-project/testing
+s3://my-s3-bucket//my-second-project/production
+s3://my-s3-bucket//my-second-project/testing
 ```
 
 This tool will 
