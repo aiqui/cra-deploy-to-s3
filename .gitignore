@@ -1,4 +1,5 @@
 dist/
 *egg-info*
 __pycache__
+*.pyc
 s3_deploy.cfg
