@@ -13,7 +13,7 @@ import hashlib
 import datetime
 import mimetypes
 
-LOCAL_DIR   = os.path.dirname(os.path.realpath(__file__))
+LOCAL_DIR   = os.getcwd() # Get directory where the script was run from
 BASE_DIR    = os.path.dirname(LOCAL_DIR)
 PACKAGE_DIR = BASE_DIR + "/packages" 
 CONFIG_FILE = "s3_deploy.cfg"
@@ -173,8 +173,9 @@ class Deploy:
     def getConfig (self):
         """Get all configuration elements"""
         self.oConfig = configparser.RawConfigParser()
-        self.oConfig.read("/".join(
-            [LOCAL_DIR, self.oCmdOptions.sConfigFile or CONFIG_FILE]))
+        config_file = "/".join([LOCAL_DIR, self.oCmdOptions.sConfigFile or CONFIG_FILE])
+        print(f"Using config_file {config_file}")
+        self.oConfig.read(config_file)
 
     def getS3Files (self, sBucket, sPrefix):
         """Get all files and sizes from S3"""
