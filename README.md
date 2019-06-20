@@ -27,9 +27,9 @@ This tool will
 ## Configuration
 
 1. Copy `s3_deploy.cfg.template` to `s3_deploy.cfg` and add your configuration elements
-2. You may have only one "product" and "deployment" to start
+   - **Note**: *You may have only one "product" and "deployment" to start*
 3. Add a CloudFront distribution for each product and deployment
-4. Add the AWS credentials that has permissions to add and remove S3 files for the configured bucket, and can create CloudFront invalidations
+4. Add the AWS credentials that have permissions to add and remove S3 files for the configured bucket, and can create CloudFront invalidations
 
 ## Requirements
 * Python 3.6 or above installed along with boto3 and other standard libraries
@@ -40,7 +40,7 @@ This tool will
 
 First you'll need to build your react application.  To transfer all the files to S3:
 ```
-./s3_deploy.py APPLICATION PROGRAM
+./s3_deploy.py <product> <deployment> <production-build-directory>
 ```
 
 ## Basic Concepts

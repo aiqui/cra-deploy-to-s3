@@ -127,8 +127,9 @@ class Deploy:
                                               self.oCmdOptions.sDeployment + '-dist-id')
 
         # Connect to S3 with the configured credentials and validate
-        sId  = self.getConfigValue('aws-credentials', 'access_id') 
-        sKey = self.getConfigValue('aws-credentials', 'secret_key')
+        sId = os.environ.get('AWS_S3_DEPLOY_ACCESS_ID') or self.getConfigValue('aws-credentials', 'access_id') 
+        sKey = os.environ.get('AWS_S3_DEPLOY_SECRET_KEY') or self.getConfigValue('aws-credentials', 'secret_key') 
+        
         self.oBoto = boto3.client('s3', aws_access_key_id=sId, aws_secret_access_key=sKey)
         try:
             statusMsg("Validating AWS credentials")
