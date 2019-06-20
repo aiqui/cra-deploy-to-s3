@@ -72,6 +72,8 @@ def getArgParser ():
     oParser.add_argument('sProduct', help='product (required)', metavar='PRODUCT')
     oParser.add_argument('sDeployment', help='deployment (required)', metavar='DEPLOYMENT')
     oParser.add_argument('sBuildDir', help='build directory (required)', metavar='DIRECTORY')
+    oParser.add_argument('-c', '--config', action='store', dest='sConfigFile', type=str,
+                         help='point to config file')
     oParser.add_argument('-d', '--dry-run', action='store_true', dest='bDryRun',
                          help='run without transferring to S3')
     oParser.add_argument('-f', '--force-transfer', action='store_true', dest='bForceTransfer',
@@ -171,7 +173,8 @@ class Deploy:
     def getConfig (self):
         """Get all configuration elements"""
         self.oConfig = configparser.RawConfigParser()
-        self.oConfig.read(LOCAL_DIR + "/" +  CONFIG_FILE)
+        self.oConfig.read("/".join(
+            [LOCAL_DIR, self.oCmdOptions.sConfigFile or CONFIG_FILE]))
 
     def getS3Files (self, sBucket, sPrefix):
         """Get all files and sizes from S3"""
