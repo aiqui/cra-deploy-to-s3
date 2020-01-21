@@ -248,10 +248,10 @@ class Deploy:
                 data = open(sFile, 'rb')
                 if searchList(sFile, NO_CACHE_FILES) is False:
                     self.oBoto.put_object(Body=data, Bucket=sBucket, CacheControl=sCacheAlways,
-                                          ContentType=sMime, Key=sKey)
+                                          ContentType=sMime or "text/plain", Key=sKey)
                 else:
                     self.oBoto.put_object(Body=data, Bucket=sBucket, CacheControl=sCacheNever,
-                                          ContentType=sMime, Key=sKey)
+                                          ContentType=sMime or "text/plain", Key=sKey)
 
 
     def maintainVersions (self, aS3FileInfo, aOldS3Files, iVersions, sBucket, sPrefix):
