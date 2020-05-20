@@ -1,8 +1,7 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import boto3
 from botocore.exceptions import ClientError
-import botocore
 import sys
 import re
 import os
@@ -13,51 +12,60 @@ import hashlib
 import datetime
 import mimetypes
 
-LOCAL_DIR   = os.path.dirname(os.path.realpath(__file__))
-BASE_DIR    = os.path.dirname(LOCAL_DIR)
-PACKAGE_DIR = BASE_DIR + "/packages" 
+LOCAL_DIR = os.path.dirname(os.path.realpath(__file__))
+BASE_DIR = os.path.dirname(LOCAL_DIR)
+PACKAGE_DIR = BASE_DIR + "/packages"
 CONFIG_FILE = "s3_deploy.cfg"
 
-CACHE_SECONDS  = 90 * 24 * 60 * 60
-NO_CACHE_FILES = [ 'index.html', 'asset-manifest.json' ]
+CACHE_SECONDS = 90 * 24 * 60 * 60
+NO_CACHE_FILES = ['index.html', 'asset-manifest.json']
 
 PROG_DESC = """Build a create-react-app production deployment and copy to S3.
 
 """
 
-def usage (sMsg = None):
+
+def usage(sMsg=None):
     """Print the usage information and exit"""
-    if sMsg != None:
+    if sMsg is not None:
         printStdError("error: " + sMsg + "\n")
     oParser = getArgParser()
     oParser.print_help()
     sys.exit(-1)
 
-def printStdError (sOutput):
+
+def printStdError(sOutput):
     """Print to standard error"""
     sys.stderr.write(sOutput + "\n")
 
-def errorMsg (sMsg, bExit = True):
+
+def errorMsg(sMsg, bExit=True):
     """Print an error message and optionally exit program"""
     printStdError("Error: " + sMsg)
     if bExit:
         sys.exit(-1)
 
-def statusMsg (sMsg, bNewLine = False):
+
+def statusMsg(sMsg, bNewLine=False):
+    """Provide a status message"""
     if bNewLine:
         print("")
-    print(" *** %s ***" % (sMsg))
+    print(" *** %s ***" % sMsg)
 
-def awsError (e):
+
+def awsError(e):
     """Print an AWS exception message and exit"""
     errorMsg('AWS - {}.'.format(e.response['Error']['Message']))
 
-def prettyPrint (sVal):
+
+def prettyPrint(sVal):
     """Better printing"""
     pprint.PrettyPrinter(indent=2).pprint(sVal)
 
-def md5Checksum (filePath):
-    with open(filePath, 'rb') as fh:
+
+def md5Checksum(sPath):
+    """Get the MD5 value for a file"""
+    with open(sPath, 'rb') as fh:
         m = hashlib.md5()
         while True:
             data = fh.read(8192)
@@ -66,9 +74,10 @@ def md5Checksum (filePath):
             m.update(data)
         return m.hexdigest()
 
-def getArgParser ():
+
+def getArgParser():
     """Management of the command-line argument parser"""
-    oParser = argparse.ArgumentParser(description=PROG_DESC, formatter_class=argparse.RawTextHelpFormatter)
+    oParser = argparse.ArgumentParser(description=PROG_DESC)
     oParser.add_argument('sProduct', help='product (required)', metavar='PRODUCT')
     oParser.add_argument('sDeployment', help='deployment (required)', metavar='DEPLOYMENT')
     oParser.add_argument('sBuildDir', help='build directory (required)', metavar='DIRECTORY')
@@ -82,14 +91,16 @@ def getArgParser ():
                          help='number of versions to maintain', metavar='VERSIONS')
     return oParser
 
-def searchList (sNeedle, aHaystack):
+
+def searchList(sNeedle, aHaystack):
     """Get the index of element in a list or return false"""
     try:
         return aHaystack.index(sNeedle)
     except ValueError:
         return False
 
-def getCwdFiles ():
+
+def getCwdFiles():
     """Get a recursive file listing of the current directory"""
     aAllFiles = []
     for sRoot, aDirs, aFiles in os.walk('.'):
@@ -98,8 +109,10 @@ def getCwdFiles ():
             aAllFiles.append(sPath)
     return aAllFiles
 
+
 class Deploy:
-    def main (self):
+
+    def main(self):
         """Primary class method"""
         self.getCmdOptions()
         self.getConfig()
@@ -108,17 +121,17 @@ class Deploy:
         self.syncToS3()
         self.clearCloudFront()
 
-    def validateTarget (self):
+    def validateTarget(self):
         """Validate the deployment target"""
 
-        self.PRODUCTS    = self.getConfigValue('general', 'products').split()
+        self.PRODUCTS = self.getConfigValue('general', 'products').split()
         self.DEPLOYMENTS = self.getConfigValue('general', 'deployments').split()
-        self.S3_BUCKET   = self.getConfigValue('general', 's3_bucket')
-        
+        self.S3_BUCKET = self.getConfigValue('general', 's3_bucket')
+
         if searchList(self.oCmdOptions.sProduct, self.PRODUCTS) is False:
             errorMsg("invalid product: %s, valid products are: %s" %
                      (self.oCmdOptions.sProduct, ", ".join(self.PRODUCTS)))
-            
+
         if searchList(self.oCmdOptions.sDeployment, self.DEPLOYMENTS) is False:
             errorMsg("invalid deployment: %s, valid deployments are: %s" %
                      (self.oCmdOptions.sDeployment, ", ".join(self.DEPLOYMENTS)))
@@ -127,7 +140,7 @@ class Deploy:
                                               self.oCmdOptions.sDeployment + '-dist-id')
 
         # Connect to S3 with the configured credentials and validate
-        sId  = self.getConfigValue('aws-credentials', 'access_id') 
+        sId = self.getConfigValue('aws-credentials', 'access_id')
         sKey = self.getConfigValue('aws-credentials', 'secret_key')
         self.oBoto = boto3.client('s3', aws_access_key_id=sId, aws_secret_access_key=sKey)
         try:
@@ -136,9 +149,8 @@ class Deploy:
         except ClientError as e:
             awsError(e)
         self.oBotoCF = boto3.client('cloudfront', aws_access_key_id=sId, aws_secret_access_key=sKey)
-            
 
-    def goToBuildDir (self):
+    def goToBuildDir(self):
         """Go to the build directory and validate files"""
         if not os.path.isdir(self.oCmdOptions.sBuildDir):
             errorMsg("Build directory does not exist: " + self.oCmdOptions.sBuildDir)
@@ -148,90 +160,89 @@ class Deploy:
             if not os.path.isfile(sFile):
                 errorMsg("Build directory is missing files: " + self.oCmdOptions.sBuildDir)
 
-    def getCmdOptions (self):
+    def getCmdOptions(self):
         """Get all command line args as an object, stored in a static variable"""
 
         # Return the attribute if set, otherwise set 
         oParser = getArgParser()
         self.oCmdOptions = oParser.parse_args()
 
-    def getConfigValue (self, sSection, sKey, bRequired = True):
+    def getConfigValue(self, sSection, sKey, bRequired=True):
         """Get a configuration value"""
         sValue = None
         if self.oConfig.has_section(sSection):
             if self.oConfig.has_option(sSection, sKey):
-               sValue =  self.oConfig[sSection][sKey]
+                sValue = self.oConfig[sSection][sKey]
             elif bRequired:
                 errorMsg("Missing configuration option: %s:%s" % (sSection, sKey))
         elif bRequired:
             errorMsg("Missing configuration section: " + sSection)
         return sValue
 
-    def getConfig (self):
+    def getConfig(self):
         """Get all configuration elements"""
         self.oConfig = configparser.RawConfigParser()
-        self.oConfig.read(LOCAL_DIR + "/" +  CONFIG_FILE)
+        self.oConfig.read(LOCAL_DIR + "/" + CONFIG_FILE)
 
-    def getS3Files (self, sBucket, sPrefix):
+    def getS3Files(self, sBucket, sPrefix):
         """Get all files and sizes from S3"""
-        oResponse = self.oBoto.list_objects_v2(Bucket = sBucket, Prefix = sPrefix)
+        oResponse = self.oBoto.list_objects_v2(Bucket=sBucket, Prefix=sPrefix)
         try:
             aContents = oResponse['Contents']
         except KeyError:
             return {}
-        
+
         # Sort by last modified, newest on top
-        get_last_modified = lambda obj: int(obj['LastModified'].strftime('%s'))
+        def get_last_modified(obj):
+            int(obj['LastModified'].strftime('%s'))
         aContents = [obj for obj in sorted(aContents, key=get_last_modified, reverse=True)]
 
         aFiles = {}
         for oContent in aContents:
             sKey = oContent['Key'].replace(sPrefix + '/', '')
             aFiles[sKey] = {
-                'key':      sKey,
-                'etag':     re.sub(r'^"(.*)"$', '\\1', oContent['ETag']),
-                'size':     oContent['Size'],
+                'key': sKey,
+                'etag': re.sub(r'^"(.*)"$', '\\1', oContent['ETag']),
+                'size': oContent['Size'],
                 'modified': oContent['LastModified']
             }
         return aFiles
 
-    def compareFiles (self, aBuildFiles, aS3FileInfo):
+    def compareFiles(self, aBuildFiles, aS3FileInfo):
         """Get a list of new build files and old S3 files"""
-        aS3Files     = aS3FileInfo.keys()
-        setBuild     = set(aBuildFiles)
-        setS3        = set(aS3Files)
-        aNewFiles    = list(setBuild - setS3)
-        aOldS3Files  = list(setS3 - setBuild)
+        aS3Files = aS3FileInfo.keys()
+        setBuild = set(aBuildFiles)
+        setS3 = set(aS3Files)
+        aNewFiles = list(setBuild - setS3)
+        aOldS3Files = list(setS3 - setBuild)
         aCommonFiles = list(setBuild & setS3)
 
         # Compare comman files by their S3 etags (always MD5 in normal circumstances)
         for sFile in aCommonFiles:
             if self.oCmdOptions.bForceTransfer or aS3FileInfo[sFile]['etag'] != md5Checksum(sFile):
                 aNewFiles.append(sFile)
-                
+
             # Always add the manifest as new so the date is updated
             elif re.match('precache-manifest', sFile):
-                aNewFiles.append(sFile) 
-                
+                aNewFiles.append(sFile)
+
         return aNewFiles, aOldS3Files
 
-
-    def removeS3Files (self, sBucket, sPrefix, aFiles):
+    def removeS3Files(self, sBucket, sPrefix, aFiles):
         """Remove files from S3"""
         for sFile in aFiles:
             sKey = '%s/%s' % (sPrefix, sFile)
-            print(" - removing s3://%s/%s" % (sBucket, sKey)) 
+            print(" - removing s3://%s/%s" % (sBucket, sKey))
             if not self.oCmdOptions.bDryRun:
                 self.oBoto.delete_object(Bucket=sBucket, Key=sKey)
 
-        
-    def transferFiles (self, sBucket, sPrefix, aFiles):
+    def transferFiles(self, sBucket, sPrefix, aFiles):
         """Transfer files to S3"""
 
         # Caching states
-        sCacheAlways = 'max-age=%d, public' % (CACHE_SECONDS)
-        sCacheNever  = 'max-age=0, no-cache, must-revalidate, proxy-revalidate, no-store'
-        
+        sCacheAlways = 'max-age=%d, public' % CACHE_SECONDS
+        sCacheNever = 'max-age=0, no-cache, must-revalidate, proxy-revalidate, no-store'
+
         # Mapping file type - all others should be defined
         mimetypes.add_type('application/octet-stream', '.map')
 
@@ -248,8 +259,7 @@ class Deploy:
                     self.oBoto.put_object(Body=data, Bucket=sBucket, CacheControl=sCacheNever,
                                           ContentType=sMime, Key=sKey)
 
-
-    def maintainVersions (self, aS3FileInfo, aOldS3Files, iVersions, sBucket, sPrefix):
+    def maintainVersions(self, aS3FileInfo, aOldS3Files, iVersions, sBucket, sPrefix):
         """Maintain files from older versions"""
 
         # Get the old version files and sort by date
@@ -271,14 +281,13 @@ class Deploy:
 
         # Remove any of the excluded files from the old list
         return list(set(aOldS3Files) - set(aExclude))
-            
 
-    def syncToS3 (self):
+    def syncToS3(self):
         """Sync all files to S3 - assume we are in the build directory"""
 
         if self.oCmdOptions.bInvalidCFOnly:
             return
-        
+
         # Get all the build files
         aBuildFiles = getCwdFiles()
         # prettyPrint(aBuildFiles)
@@ -304,17 +313,18 @@ class Deploy:
         # Remove any old files
         self.removeS3Files(self.S3_BUCKET, sPrefix, aOldS3Files)
 
-    def clearCloudFront (self):
+    def clearCloudFront(self):
         """Send a complete invalidation to the CloudFront distribution"""
         if self.oCmdOptions.bDryRun:
             return
-                
+
         statusMsg("Clearing CloudFront distribution: " + self.CF_DIST_ID, True)
         self.oBotoCF.create_invalidation(DistributionId=self.CF_DIST_ID,
                                          InvalidationBatch={
-                                             'Paths': { 'Quantity': 1, 'Items': [ '/*' ] },
+                                             'Paths': {'Quantity': 1, 'Items': ['/*']},
                                              'CallerReference': 's3-deploy-{}'.format(datetime.datetime.now())
                                          })
+
 
 # Run the system
 oDeploy = Deploy()
