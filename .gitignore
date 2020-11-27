@@ -1,3 +1,8 @@
 s3_deploy.cfg
 .idea
 cra-deploy-to-s3.iml
+dist/
+*egg-info*
+__pycache__
+*.pyc
+s3_deploy.cfg
